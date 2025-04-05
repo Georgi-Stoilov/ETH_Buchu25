@@ -79,6 +79,23 @@ function App() {
     initialDestBalance: '0',
     bridgeAmount: '0'
   });
+
+  // Theme state
+  const [theme, setTheme] = useState(() => {
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme) return storedTheme;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
   
   // Get all available networks
   const networks = getAllNetworks();
@@ -286,6 +303,19 @@ function App() {
     }
   }, [isConnected, address, networks, sourceNetwork, handleFetchBalanceForChain]);
   
+  // Add swap function to exchange source and destination networks
+  const handleSwapNetworks = () => {
+    const prevSource = sourceNetwork;
+    const prevDest = destNetwork;
+    setSourceNetwork(prevDest);
+    setDestNetwork(prevSource);
+    // Refresh balances for swapped networks
+    if (address) {
+      handleFetchBalanceForChain(networks[prevDest]?.chainId);
+      handleFetchBalanceForChain(networks[prevSource]?.chainId);
+    }
+  };
+
   // ======== Bridge Modal ========
   
   // Function to check destination balance for the modal
@@ -616,111 +646,134 @@ function App() {
   
   
   return (
-    <div className="bridge-container">
-      <div className="bridge-header">
-        <div className="title-wrapper">
-          <h1>Token Bridge</h1>
-        </div>
-        <div className="wallet-section">
-          <h1>Token Bridge</h1>
-          <WalletConnect
-            isConnected={isConnected}
-            address={address}
-            chainId={chainId}
-            networkName={currentNetworkName}
-            onConnect={handleConnect}
+    <div className="app-container">
+      {/* Theme toggle slider */}
+      <div className="theme-toggle-container">
+        <label className="theme-switch">
+          <input 
+            type="checkbox" 
+            onChange={toggleTheme} 
+            checked={theme === 'dark'} 
           />
-        </div>
+          <span className="slider"></span>
+        </label>
       </div>
-      
-      <div className="bridge-main">
-        <div className="bridge-card" style={{ maxHeight: 'fit-content' }}>
-          <div className="bridge-form-container">
-            <div className="network-selection">
-              <div className="source-network">
-                {isConnected ? (
-                  <>
-              <NetworkSelector
-                networks={networks}
-                currentChainId={chainId}
-                selectedNetwork={sourceNetwork}
-                onNetworkChange={handleSourceNetworkChange}
-                label="Source Network"
-                placeholder="Select source"
-                balances={balances}
-              />
-                    <div className="chain-balance">
-                      <span className="balance-label">Balance:</span>
-                      <span className="balance-amount">
-                        {!sourceNetwork ? '-' : isLoadingSourceBalance ? 'Loading...' : `${sourceBalance} ${tokenSymbol}`}
-                      </span>
+      <div className="bridge-container">
+        <div className="bridge-header">
+          <div className="title-wrapper">
+            <h1>Token Bridge</h1>
+          </div>
+          <div className="wallet-section">
+            <h1>Token Bridge</h1>
+            <WalletConnect
+              isConnected={isConnected}
+              address={address}
+              chainId={chainId}
+              networkName={currentNetworkName}
+              onConnect={handleConnect}
+            />
+          </div>
+        </div>
+        
+        <div className="bridge-main">
+          <div className="bridge-card" style={{ maxHeight: 'fit-content' }}>
+            <div className="bridge-form-container">
+              <div className="network-selection">
+                <div className="source-network">
+                  {isConnected ? (
+                    <>
+                      <NetworkSelector
+                        networks={networks}
+                        currentChainId={chainId}
+                        selectedNetwork={sourceNetwork}
+                        onNetworkChange={handleSourceNetworkChange}
+                        label="Source Network"
+                        placeholder="Select source"
+                        balances={balances}
+                      />
+                      <div className="chain-balance">
+                        <span className="balance-label">Balance:</span>
+                        <span className="balance-amount">
+                          {!sourceNetwork ? '-' : isLoadingSourceBalance ? 'Loading...' : `${sourceBalance} ${tokenSymbol}`}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="connect-prompt-mini">
+                      Connect wallet to select source network
                     </div>
-                  </>
-                ) : (
-                  <div className="connect-prompt-mini">
-                    Connect wallet to select source network
-                  </div>
-                )}
+                  )}
+                </div>
+                {/* Swap Button */}
+                <div className="swap-container">
+                  <button className="swap-button" onClick={handleSwapNetworks}>
+                    {/* Inline SVG with real arrow shapes */}
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                      <path d="M4 12h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <path d="M10 6l-6 6 6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M14 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+                <div className="destination-network">
+                  {isConnected ? (
+                    <>
+                      <NetworkSelector
+                        networks={networks}
+                        currentChainId={chainId}
+                        selectedNetwork={destNetwork}
+                        onNetworkChange={handleDestNetworkChange}
+                        label="Destination Network"
+                        placeholder="Select destination"
+                        balances={balances}
+                      />
+                      <div className="chain-balance">
+                        <span className="balance-label">Balance:</span>
+                        <span className="balance-amount">
+                          {!destNetwork ? '-' : isLoadingDestBalance ? 'Loading...' : `${destBalance} ${tokenSymbol}`}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="connect-prompt-mini">
+                      Connect wallet to select destination
+                    </div>
+                  )}
+                </div>
               </div>
               
-              <div className="destination-network">
-                {isConnected ? (
-                  <>
-                    <NetworkSelector
-                      networks={networks}
-                      currentChainId={chainId}
-                      selectedNetwork={destNetwork}
-                      onNetworkChange={handleDestNetworkChange}
-                      label="Destination Network"
-                      placeholder="Select destination"
-                      balances={balances}
-                    />
-                    <div className="chain-balance">
-                      <span className="balance-label">Balance:</span>
-                      <span className="balance-amount">
-                        {!destNetwork ? '-' : isLoadingDestBalance ? 'Loading...' : `${destBalance} ${tokenSymbol}`}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="connect-prompt-mini">
-                    Connect wallet to select destination
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <TokenBridge
-              isConnected={isConnected}
-              onBridge={handleBridge}
-              tokenSymbol={tokenSymbol}
-              tokenBalance={sourceBalance}
-              isLoading={isBridging}
-              sourceNetwork={sourceNetwork ? networks[sourceNetwork]?.name : null}
-              destNetwork={destNetwork ? networks[destNetwork]?.name : null}
-            />
-            
-            <div className="bridge-footer">
+              <TokenBridge
+                isConnected={isConnected}
+                onBridge={handleBridge}
+                tokenSymbol={tokenSymbol}
+                tokenBalance={sourceBalance}
+                isLoading={isBridging}
+                sourceNetwork={sourceNetwork ? networks[sourceNetwork]?.name : null}
+                destNetwork={destNetwork ? networks[destNetwork]?.name : null}
+              />
+              
+              <div className="bridge-footer">
               <img src="/logo-black.svg" alt="VIA Protocol" className="via-logo" />
+              </div>
             </div>
           </div>
         </div>
+        
+        {/* Bridge Modal */}
+        <BridgeModal
+          isOpen={showBridgeModal}
+          onClose={handleCloseModal}
+          sourceNetwork={bridgeModalData.sourceNetwork}
+          destNetwork={bridgeModalData.destNetwork}
+          txHash={bridgeModalData.txHash}
+          recipientAddress={bridgeModalData.recipientAddress}
+          initialSourceBalance={bridgeModalData.initialSourceBalance}
+          initialDestBalance={bridgeModalData.initialDestBalance}
+          onCheckDestBalance={checkDestinationBalance}
+          tokenAddress={bridgeModalData.tokenAddress}
+          bridgeAmount={bridgeModalData.bridgeAmount}
+        />
       </div>
-      
-      {/* Bridge Modal */}
-      <BridgeModal
-        isOpen={showBridgeModal}
-        onClose={handleCloseModal}
-        sourceNetwork={bridgeModalData.sourceNetwork}
-        destNetwork={bridgeModalData.destNetwork}
-        txHash={bridgeModalData.txHash}
-        recipientAddress={bridgeModalData.recipientAddress}
-        initialSourceBalance={bridgeModalData.initialSourceBalance}
-        initialDestBalance={bridgeModalData.initialDestBalance}
-        onCheckDestBalance={checkDestinationBalance}
-        tokenAddress={bridgeModalData.tokenAddress}
-        bridgeAmount={bridgeModalData.bridgeAmount}
-      />
     </div>
   );
 }

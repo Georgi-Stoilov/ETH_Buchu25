@@ -4,6 +4,7 @@
   "description": "A lightweight ethers v6 example of an ERC20 cross-chain token",
   "main": "index.js",
   "scripts": {
+    "start": "cd frontend && npm start",
     "compile": "solcjs --bin --abi --include-path node_modules/ --base-path . -o ./build contracts/MyERC20.sol",
     "deploy:fuji": "node scripts/deploy.js fuji",
     "deploy:sepolia": "node scripts/deploy.js sepolia",
@@ -13,7 +14,8 @@
     "balance:sepolia": "node scripts/getBalance.js sepolia",
     "bridge:fuji-to-sepolia": "node scripts/bridge.js fuji sepolia",
     "bridge:sepolia-to-fuji": "node scripts/bridge.js sepolia fuji",
-    "frontend": "cd frontend && npm start"
+    "frontend": "cd frontend && npm start",
+    "dev": "node oracle/index.js"
   },
   "keywords": [
     "ethereum",
